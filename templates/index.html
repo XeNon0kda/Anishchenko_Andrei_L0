@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Order Service</title>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .search-box { margin-bottom: 20px; }
+        input[type="text"] { padding: 10px; width: 300px; margin-right: 10px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .order-info { border: 1px solid #ddd; padding: 20px; margin-top: 20px; }
+        .section { margin-bottom: 15px; }
+        .section h3 { margin-bottom: 10px; color: #333; }
+        .error { color: red; }
+        .item { border: 1px solid #eee; padding: 10px; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Order Service</h1>
+        <div id="root"></div>
+    </div>
+
+    <script type="text/babel">
+        function App() {
+            const [orderId, setOrderId] = React.useState('');
+            const [order, setOrder] = React.useState(null);
+            const [loading, setLoading] = React.useState(false);
+            const [error, setError] = React.useState('');
+
+            const searchOrder = async () => {
+                if (!orderId.trim()) return;
+                
+                setLoading(true);
+                setError('');
+                setOrder(null);
+                
+                try {
+                    const response = await fetch('/api/order/' + orderId);
+                    if (response.ok) {
+                        const orderData = await response.json();
+                        setOrder(orderData);
+                    } else {
+                        setError('Order not found');
+                    }
+                } catch (err) {
+                    setError('Error fetching order');
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    searchOrder();
+                }
+            };
+
+            return React.createElement('div', null,
+                React.createElement('div', {className: 'search-box'},
+                    React.createElement('input', {
+                        type: 'text',
+                        placeholder: 'Enter Order ID',
+                        value: orderId,
+                        onChange: (e) => setOrderId(e.target.value),
+                        onKeyPress: handleKeyPress
+                    }),
+                    React.createElement('button', {
+                        onClick: searchOrder,
+                        disabled: loading
+                    }, loading ? 'Loading...' : 'Search')
+                ),
+                
+                error && React.createElement('div', {className: 'error'}, error),
+                
+                order && React.createElement(OrderDetails, {order: order})
+            );
+        }
+
+        function OrderDetails({ order }) {
+            return React.createElement('div', {className: 'order-info'},
+                React.createElement('h2', null, 'Order: ', order.order_uid),
+                
+                React.createElement('div', {className: 'section'},
+                    React.createElement('h3', null, 'Basic Information'),
+                    React.createElement('p', null, 'Track Number: ', order.track_number),
+                    React.createElement('p', null, 'Entry: ', order.entry),
+                    React.createElement('p', null, 'Locale: ', order.locale),
+                    React.createElement('p', null, 'Customer ID: ', order.customer_id),
+                    React.createElement('p', null, 'Date Created: ', new Date(order.date_created).toLocaleString())
+                ),
+                
+                React.createElement('div', {className: 'section'},
+                    React.createElement('h3', null, 'Delivery'),
+                    React.createElement('p', null, 'Name: ', order.delivery.name),
+                    React.createElement('p', null, 'Phone: ', order.delivery.phone),
+                    React.createElement('p', null, 'Zip: ', order.delivery.zip),
+                    React.createElement('p', null, 'City: ', order.delivery.city),
+                    React.createElement('p', null, 'Address: ', order.delivery.address),
+                    React.createElement('p', null, 'Region: ', order.delivery.region),
+                    React.createElement('p', null, 'Email: ', order.delivery.email)
+                ),
+                
+                React.createElement('div', {className: 'section'},
+                    React.createElement('h3', null, 'Payment'),
+                    React.createElement('p', null, 'Transaction: ', order.payment.transaction),
+                    React.createElement('p', null, 'Amount: $', (order.payment.amount / 100).toFixed(2)),
+                    React.createElement('p', null, 'Currency: ', order.payment.currency),
+                    React.createElement('p', null, 'Provider: ', order.payment.provider),
+                    React.createElement('p', null, 'Bank: ', order.payment.bank),
+                    React.createElement('p', null, 'Delivery Cost: $', (order.payment.delivery_cost / 100).toFixed(2)),
+                    React.createElement('p', null, 'Goods Total: $', (order.payment.goods_total / 100).toFixed(2))
+                ),
+                
+                React.createElement('div', {className: 'section'},
+                    React.createElement('h3', null, 'Items (', order.items.length, ')'),
+                    order.items.map(item => 
+                        React.createElement('div', {key: item.chrt_id, className: 'item'},
+                            React.createElement('p', {style: {margin: 0, fontWeight: 'bold'}}, item.name),
+                            React.createElement('p', {style: {margin: 0}}, 'Brand: ', item.brand),
+                            React.createElement('p', {style: {margin: 0}}, 'Price: $', (item.price / 100).toFixed(2)),
+                            React.createElement('p', {style: {margin: 0}}, 'Sale: ', item.sale, '%'),
+                            React.createElement('p', {style: {margin: 0}}, 'Total Price: $', (item.total_price / 100).toFixed(2)),
+                            React.createElement('p', {style: {margin: 0}}, 'Status: ', item.status)
+                        )
+                    )
+                )
+            );
+        }
+
+        ReactDOM.render(React.createElement(App), document.getElementById('root'));
+    </script>
+</body>
+</html>
